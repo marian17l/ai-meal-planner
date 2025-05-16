@@ -126,40 +126,29 @@ with tab1:
         messages = [{"role": "user", "content": user_prompt}]
 
         with st.spinner("🍳 Cooking up ideas..."):
-    # Debug—make sure this runs
-    st.write("🚧 DEBUG: about to call get_meal_suggestions()")
-    response = get_meal_suggestions(messages)
-    # Debug—see exactly what we got back (first 200 chars)
-    st.write("🚧 DEBUG: raw response:", response[:200])
-    st.session_state.latest_recipe = response
+            # Debug—make sure this runs
+            st.write("🚧 DEBUG: about to call get_meal_suggestions()")
+            response = get_meal_suggestions(messages)
+            # Debug—see exactly what we got back (first 200 chars)
+            st.write("🚧 DEBUG: raw response:", response[:200])
 
-    # extract title as before...
-    title = next(
-        (line.strip('# ').strip() for line in response.splitlines() if line.strip()),
-        "Untitled Recipe"
-    )
-    st.session_state.latest_prompt = user_prompt
-    st.session_state.messages = [
-        {"role": "user", "content": user_prompt},
-        {"role": "assistant", "content": response}
-    ]
-    st.session_state.history.append(title)
+            # Store the raw recipe
+            st.session_state.latest_recipe = response
 
-                # extract title
-                title = next(
-                    (line.strip('# ').strip() for line in response.splitlines() if line.strip()),
-                    "Untitled Recipe"
-                )
+            # Extract title
+            title = next(
+                (line.strip('# ').strip() for line in response.splitlines() if line.strip()),
+                "Untitled Recipe"
+            )    
 
-                # store context & history
-                st.session_state.latest_prompt = user_prompt
-                st.session_state.messages      = [
-                    {"role": "user", "content": user_prompt},
-                    {"role": "assistant", "content": response}
-                ]
-                st.session_state.history.append(title)
-            except Exception as e:
-                st.error(f"Error: {e}")
+            # Store context & history
+            st.session_state.latest_prompt = user_prompt
+            st.session_state.messages = [
+                {"role": "user",      "content": user_prompt},
+                {"role": "assistant", "content": response}
+            ]
+            st.session_state.history.append(title)
+
 
     # Display the generated recipe
     if st.session_state.latest_recipe:
