@@ -5,7 +5,7 @@ from fpdf import FPDF  # PDF generation
 
 # Constants
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
-API_KEY = "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"
+API_KEY = st.secrets["OPENROUTER_API_KEY"]
 
 # Cached AI call to avoid duplicate requests
 @st.cache_data(show_spinner=False)
@@ -126,7 +126,7 @@ with tab1:
         messages = [{"role": "user", "content": user_prompt}]
 
         with st.spinner("🍳 Cooking up ideas..."):
-            try:
+            #try:
                 response = get_meal_suggestions(messages)
                 st.session_state.latest_recipe = response
 
@@ -143,8 +143,8 @@ with tab1:
                     {"role": "assistant", "content": response}
                 ]
                 st.session_state.history.append(title)
-            except Exception as e:
-                st.error(f"Error: {e}")
+            #except Exception as e:
+                #st.error(f"Error: {e}")
 
     # Display the generated recipe
     if st.session_state.latest_recipe:
