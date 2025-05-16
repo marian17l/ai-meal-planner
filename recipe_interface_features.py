@@ -126,7 +126,7 @@ with tab1:
         messages = [{"role": "user", "content": user_prompt}]
 
         with st.spinner("🍳 Cooking up ideas..."):
-            #try:
+            try:
                 response = get_meal_suggestions(messages)
                 st.session_state.latest_recipe = response
 
@@ -143,8 +143,8 @@ with tab1:
                     {"role": "assistant", "content": response}
                 ]
                 st.session_state.history.append(title)
-            #except Exception as e:
-                #st.error(f"Error: {e}")
+            except Exception as e:
+                st.error(f"Error: {e}")
 
     # Display the generated recipe
     if st.session_state.latest_recipe:
