@@ -5,7 +5,7 @@ from fpdf import FPDF  # PDF generation
 
 # Constants
 API_URL = "https://openrouter.ai/api/v1/chat/completions"
-API_KEY = st.secrets["openrouter"]["api_key"]
+API_KEY = "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"
 
 # Cached AI call to avoid duplicate requests
 @st.cache_data(show_spinner=False)
