@@ -20,9 +20,29 @@ def get_meal_suggestions(messages):
         "messages": messages,
         "max_tokens": 600
     }
+
+    # Make the request
     resp = requests.post(API_URL, json=data, headers=headers)
+
+    # DEBUG: show status and up to first 500 chars of body
+    st.write("🚧 DEBUG: HTTP status", resp.status_code)
+    st.write("🚧 DEBUG: response text", resp.text[:500])
+
+    # This will raise if status != 2xx
     resp.raise_for_status()
-    return resp.json()["choices"][0]["message"]["content"]
+
+    # Now parse
+    body = resp.json()
+    # DEBUG: show the parsed JSON keys
+    st.write("🚧 DEBUG: JSON keys", list(body.keys()))
+    # Extract content safely
+    choices = body.get("choices", [])
+    if not choices:
+        st.write("🚧 DEBUG: no choices array in response")
+        return ""
+    msg = choices[0].get("message", {})
+    content = msg.get("content", "")
+    return content
 
 # PDF creation of saved recipes
 def create_pdf(title: str, content: str) -> bytes:
