@@ -9,40 +9,41 @@ API_KEY = st.secrets["OPENROUTER_API_KEY"]
 
 # Cached AI call to avoid duplicate requests
 @st.cache_data(show_spinner=False)
-def get_meal_suggestions(messages):
+def get_meal_suggestions(user_prompt: str):
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",
-        "X-Title": "Recipe Meal Planner"
     }
+    # system + user split
+    messages = [
+        {
+            "role": "system",
+            "content": "You are a helpful and knowledgeable meal planning assistant."
+        },
+        {
+            "role": "user",
+            "content": user_prompt
+        }
+    ]
     data = {
         "model": "meta-llama/llama-4-maverick:free",
         "messages": messages,
-        "max_tokens": 600
+        "max_tokens": 800  # feel free to raise if your prompt is long
     }
 
-    # Make the request
     resp = requests.post(API_URL, json=data, headers=headers)
-
-    # DEBUG: show status and up to first 500 chars of body
     st.write("🚧 DEBUG: HTTP status", resp.status_code)
     st.write("🚧 DEBUG: response text", resp.text[:500])
-
-    # This will raise if status != 2xx
     resp.raise_for_status()
 
-    # Now parse
     body = resp.json()
-    # DEBUG: show the parsed JSON keys
-    st.write("🚧 DEBUG: JSON keys", list(body.keys()))
-    # Extract content safely
     choices = body.get("choices", [])
-    if not choices:
-        st.write("🚧 DEBUG: no choices array in response")
-        return ""
-    msg = choices[0].get("message", {})
-    content = msg.get("content", "")
-    return content
+    if not choices or not choices[0].get("message", {}).get("content"):
+        st.write("🚧 DEBUG: empty content—model likely ran out of context or tokens.")
+        return "⚠️ Sorry, I couldn’t generate a recipe. Try simplifying your inputs or increasing max_tokens."
+
+    return choices[0]["message"]["content"]
+
 
 # PDF creation of saved recipes
 def create_pdf(title: str, content: str) -> bytes:
@@ -148,7 +149,7 @@ with tab1:
         with st.spinner("🍳 Cooking up ideas..."):
             # Debug—make sure this runs
             st.write("🚧 DEBUG: about to call get_meal_suggestions()")
-            response = get_meal_suggestions(messages)
+            response = get_meal_suggestions(user_prompt)
             # Debug—see exactly what we got back (first 200 chars)
             st.write("🚧 DEBUG: raw response:", response[:200])
 
