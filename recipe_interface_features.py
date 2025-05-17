@@ -9,41 +9,21 @@ API_KEY = st.secrets["OPENROUTER_API_KEY"]
 
 # Cached AI call to avoid duplicate requests
 @st.cache_data(show_spinner=False)
-def get_meal_suggestions(user_prompt: str):
+def get_meal_suggestions(messages):
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",
+        "X-Title": "Recipe Meal Planner"
     }
-    # system + user split
-    messages = [
-        {
-            "role": "system",
-            "content": "You are a helpful and knowledgeable meal planning assistant."
-        },
-        {
-            "role": "user",
-            "content": user_prompt
-        }
-    ]
     data = {
         "model": "meta-llama/llama-4-maverick:free",
         "messages": messages,
-        "max_tokens": 800  # feel free to raise if your prompt is long
+        "max_tokens": 600
     }
 
     resp = requests.post(API_URL, json=data, headers=headers)
-    st.write("🚧 DEBUG: HTTP status", resp.status_code)
-    st.write("🚧 DEBUG: response text", resp.text[:500])
     resp.raise_for_status()
-
-    body = resp.json()
-    choices = body.get("choices", [])
-    if not choices or not choices[0].get("message", {}).get("content"):
-        st.write("🚧 DEBUG: empty content—model likely ran out of context or tokens.")
-        return "⚠️ Sorry, I couldn’t generate a recipe. Try simplifying your inputs or increasing max_tokens."
-
-    return choices[0]["message"]["content"]
-
+    return resp.json()["choices"][0]["message"]["content"]
 
 # PDF creation of saved recipes
 def create_pdf(title: str, content: str) -> bytes:
@@ -112,7 +92,7 @@ with tab1:
         prep_time              = st.text_input("Maximum preparation time preference (in minutes):")
         portion_size           = st.text_input("How many portion sizes do you want to cook?")
 
-        # Advanced options in an expander
+        # Advanced options in an expander (for )
         with st.expander("Advanced Options"):
             tools                  = st.text_input("Any cooking tools you don't have:")
             nutritional_breakdown  = st.text_input("Do you want a nutritional breakdown of the meal?")
@@ -147,36 +127,32 @@ with tab1:
         messages = [{"role": "user", "content": user_prompt}]
 
         with st.spinner("🍳 Cooking up ideas..."):
-            # Debug—make sure this runs
-            st.write("🚧 DEBUG: about to call get_meal_suggestions()")
-            response = get_meal_suggestions(user_prompt)
-            # Debug—see exactly what we got back (first 200 chars)
-            st.write("🚧 DEBUG: raw response:", response[:200])
+            try:
+                response = get_meal_suggestions(messages)
+                st.session_state.latest_recipe = response
 
-            # Store the raw recipe
-            st.session_state.latest_recipe = response
+                # extract title
+                title = next(
+                    (line.strip('# ').strip() for line in response.splitlines() if line.strip()),
+                    "Untitled Recipe"
+                )
 
-            # Extract title
-            title = next(
-                (line.strip('# ').strip() for line in response.splitlines() if line.strip()),
-                "Untitled Recipe"
-            )    
-
-            # Store context & history
-            st.session_state.latest_prompt = user_prompt
-            st.session_state.messages = [
-                {"role": "user",      "content": user_prompt},
-                {"role": "assistant", "content": response}
-            ]
-            st.session_state.history.append(title)
-
+                # store context & history
+                st.session_state.latest_prompt = user_prompt
+                st.session_state.messages      = [
+                    {"role": "user", "content": user_prompt},
+                    {"role": "assistant", "content": response}
+                ]
+                st.session_state.history.append(title)
+            except Exception as e:
+                st.error(f"Error: {e}")
 
     # Display the generated recipe
     if st.session_state.latest_recipe:
         st.markdown("### 🍽️ Your Meal Suggestion")
         st.write(st.session_state.latest_recipe)
 
-        # Substitution block
+        # Substitution feature
         with st.expander("🔁 Ingredient Substitution"):
             st.session_state.substitute_mode = st.checkbox("I want to substitute an ingredient")
             if st.session_state.substitute_mode:
@@ -195,7 +171,7 @@ with tab1:
                     except Exception as e:
                         st.error(f"Error during substitution: {e}")
 
-        # Save button
+        # Sav Recipe feature
         if st.button("💾 Save this recipe"):
             st.session_state.saved.append({
                 "title": title,
@@ -203,7 +179,7 @@ with tab1:
             })
             st.success("Recipe saved to your library!")
 
-        # Regenerate button
+        # Regenerate button feature
         if st.button("🔄 Regenerate Recipe"):
             st.session_state.messages.append({
                 "role": "user",
@@ -220,7 +196,7 @@ with tab1:
                         "Untitled Recipe"
                     )
                     st.session_state.history.append(new_title)
-                except Exception as e:   
+                except Exception as e:
                     st.error(f"Error regenerating recipe: {e}")
 
 with tab2:
