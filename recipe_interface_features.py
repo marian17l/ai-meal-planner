@@ -220,7 +220,7 @@ with tab1:
                         "Untitled Recipe"
                     )
                     st.session_state.history.append(new_title)
-                except Exception as e:
+                except Exception as e:   
                     st.error(f"Error regenerating recipe: {e}")
 
 with tab2:
